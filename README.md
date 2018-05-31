@@ -1,7 +1,7 @@
 # Sequitur_dart
 The Sequitur/Nevill-Manning algorithm in Dart
 
-> Sequitur (or Nevill-Manning algorithm) is a recursive algorithm developed by Craig Nevill-Manning and Ian H. Witten in 1997[1] that infers a hierarchical structure (context-free grammar) from a sequence of discrete symbols. The algorithm operates in linear space and time. It can be used in data compression software applications.  
+> Sequitur (or Nevill-Manning algorithm) is a recursive algorithm developed by Craig Nevill-Manning and Ian H. Witten in 1997 that infers a hierarchical structure (context-free grammar) from a sequence of discrete symbols. The algorithm operates in linear space and time. It can be used in data compression software applications.  
 Wikipedia: [Sequitur algorithm](https://en.wikipedia.org/wiki/Sequitur_algorithm)
 
 
