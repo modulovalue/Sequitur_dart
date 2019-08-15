@@ -1,5 +1,4 @@
-
-import 'package:Sequitor_dart/Sequitur_dart.dart';
+import 'package:sequitur_dart/sequitur_dart.dart';
 
 class Rule {
 
@@ -21,11 +20,11 @@ class Rule {
         printingIndex = 0;
     }
 
-    Symboll first() {
+    SequiturSymbol first() {
         return theGuard.n;
     }
 
-    Symboll last() {
+    SequiturSymbol last() {
         return theGuard.p;
     }
 
@@ -33,7 +32,7 @@ class Rule {
         List<Rule> rules = new List<Rule>();
         Rule currentRule;
         Rule referedTo;
-        Symboll sym;
+        SequiturSymbol sym;
         int index;
         int processedRules = 0;
         StringBuffer text = new StringBuffer();

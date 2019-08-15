@@ -1,7 +1,6 @@
+import 'package:sequitur_dart/sequitur_dart.dart';
 
-import 'package:Sequitor_dart/Sequitur_dart.dart';
-
-class Guard extends Symboll {
+class Guard extends SequiturSymbol {
 
     Rule r;
 
@@ -14,7 +13,7 @@ class Guard extends Symboll {
 
     @override
     void cleanUp() {
-        Symboll.join(p, n);
+        SequiturSymbol.join(p, n);
     }
 
     @override

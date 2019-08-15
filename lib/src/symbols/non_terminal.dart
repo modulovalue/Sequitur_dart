@@ -1,13 +1,12 @@
+import 'package:sequitur_dart/sequitur_dart.dart';
 
-import 'package:Sequitor_dart/Sequitur_dart.dart';
-
-class NonTerminal extends Symboll {
+class NonTerminal extends SequiturSymbol {
 
     Rule r;
 
     NonTerminal(this.r) {
         r.countOfRules++;
-        value = (Symboll.numTerminals + r.nonTerminalIdentificationRuleNumber).toString();
+        value = (SequiturSymbol.numTerminals + r.nonTerminalIdentificationRuleNumber).toString();
         p = null;
         n = null;
     }
@@ -27,7 +26,7 @@ class NonTerminal extends Symboll {
 
     @override
     void cleanUp() {
-        Symboll.join(p, n);
+        SequiturSymbol.join(p, n);
         deleteDigram();
         r.countOfRules--;
     }
@@ -43,14 +42,14 @@ class NonTerminal extends Symboll {
      */
 
     void expand() {
-        Symboll.join(p, r.first());
-        Symboll.join(r.last(), n);
+        SequiturSymbol.join(p, r.first());
+        SequiturSymbol.join(r.last(), n);
 
         // Bug fix (21.8.2012): digram consisting of the last element of
         // the inserted Rule and the first element after the inserted Rule
         // must be put into the hash table (Simon Schwarzer)
 
-        Symboll.theDigrams[r.last()] = r.last();
+        SequiturSymbol.theDigrams[r.last()] = r.last();
 
         // Necessary so that garbage collector
         // can delete Rule and Guard.

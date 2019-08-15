@@ -1,7 +1,6 @@
+import 'package:sequitur_dart/sequitur_dart.dart';
 
-import 'package:Sequitor_dart/Sequitur_dart.dart';
-
-class Terminal extends Symboll {
+class Terminal extends SequiturSymbol {
 
     Terminal(String theValue) {
         value = theValue;
@@ -18,7 +17,7 @@ class Terminal extends Symboll {
     }
 
     void cleanUp() {
-        Symboll.join(p, n);
+        SequiturSymbol.join(p, n);
         deleteDigram();
     }
 }

@@ -1,4 +1,4 @@
-import 'package:Sequitor_dart/Sequitur_dart.dart';
+import 'package:sequitur_dart/sequitur_dart.dart';
 
 class Sequitur {
 
@@ -11,7 +11,7 @@ class Sequitur {
         int i;
         // Reset number of rules and Hashtable.
         Rule.beginningAndEndGuardSymbolRule = 0;
-        Symboll.theDigrams.clear();
+        SequiturSymbol.theDigrams.clear();
         for (i = 0; i < input.length; i++) {
             firstRule
                 .last()

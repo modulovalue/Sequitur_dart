@@ -4,10 +4,9 @@ The Sequitur/Nevill-Manning algorithm in Dart
 > Sequitur (or Nevill-Manning algorithm) is a recursive algorithm developed by Craig Nevill-Manning and Ian H. Witten in 1997 that infers a hierarchical structure (context-free grammar) from a sequence of discrete symbols. The algorithm operates in linear space and time. It can be used in data compression software applications.  
 Wikipedia: [Sequitur algorithm](https://en.wikipedia.org/wiki/Sequitur_algorithm)
 
-
 Try it out: [sequitur.info](http://www.sequitur.info)
 
-based on the Java implementation by [Eibe Frank](http://www.sequitur.info/java)
+A working qnd port to dart based on the Java implementation by [Eibe Frank](http://www.sequitur.info/java)
 
 
 ```
@@ -27,7 +26,3 @@ Usage	Rule
  2	R5 -> R4 _ 
 ```
 
-
-TODO:
-- [ ] to JSON
-- [ ] from JSON

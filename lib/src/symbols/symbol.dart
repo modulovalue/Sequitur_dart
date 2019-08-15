@@ -1,9 +1,9 @@
 import 'dart:collection';
 
-import 'package:Sequitor_dart/Sequitur_dart.dart';
-import 'package:Sequitor_dart/src/Clonable.dart';
+import 'package:sequitur_dart/sequitur_dart.dart';
+import 'package:sequitur_dart/src/clonable.dart';
 
-abstract class Symboll implements Clonable {
+abstract class SequiturSymbol implements Clonable {
 
     static const int numTerminals = 100000;
 
@@ -11,14 +11,14 @@ abstract class Symboll implements Clonable {
     static HashMap theDigrams = new HashMap();
 
     String value;
-    Symboll p;
-    Symboll n;
+    SequiturSymbol p;
+    SequiturSymbol n;
 
     /**
      * Links two symbols together, removing any old
      * digram from the hash table.
      */
-    static void join(Symboll left, Symboll right) {
+    static void join(SequiturSymbol left, SequiturSymbol right) {
         if (left.n != null) {
             left.deleteDigram();
 
@@ -50,7 +50,7 @@ abstract class Symboll implements Clonable {
     /**
      * Inserts a Symboll after this one.
      */
-    void insertAfter(Symboll toInsert) {
+    void insertAfter(SequiturSymbol toInsert) {
         join(toInsert, n);
         join(this, toInsert);
     }
@@ -60,7 +60,7 @@ abstract class Symboll implements Clonable {
      * Overwritten in sub class Guard.
      */
     void deleteDigram() {
-        Symboll dummy;
+        SequiturSymbol dummy;
 
         if (n.isGuard())
             return;
@@ -98,7 +98,7 @@ abstract class Symboll implements Clonable {
      * Overwritten in subclass Guard.
      */
     bool check() {
-        Symboll found;
+        SequiturSymbol found;
 
         if (n.isGuard())
             return false;
@@ -126,10 +126,10 @@ abstract class Symboll implements Clonable {
     /**
      * Deal with a matching digram.
      */
-    void match(Symboll newD, Symboll matching) {
+    void match(SequiturSymbol newD, SequiturSymbol matching) {
         Rule r;
-        Symboll first;
-        Symboll second;
+        SequiturSymbol first;
+        SequiturSymbol second;
 //        Symboll dummy;
 
         if (matching.p.isGuard() &&
@@ -182,7 +182,7 @@ abstract class Symboll implements Clonable {
         // prime numbers.
 
         code = 21599 * value.hashCode + (20507 * n.value.hashCode);
-        code = code % Symboll.prime;
+        code = code % SequiturSymbol.prime;
         return code;
     }
 
@@ -192,7 +192,7 @@ abstract class Symboll implements Clonable {
      */
     @override
     bool operator ==(Object obj) {
-        Symboll other = obj;
+        SequiturSymbol other = obj;
         return ((value == (other).value) &&
             (n.value == (other).n.value));
     }
