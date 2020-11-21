@@ -6,7 +6,7 @@ Wikipedia: [Sequitur algorithm](https://en.wikipedia.org/wiki/Sequitur_algorithm
 
 Try it out: [sequitur.info](http://www.sequitur.info)
 
-A working qnd port to dart based on the Java implementation by [Eibe Frank](http://www.sequitur.info/java)
+Based on the Java implementation by [Eibe Frank](http://www.sequitur.info/java)
 
 
 ```
