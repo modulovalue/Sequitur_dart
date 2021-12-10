@@ -1,23 +1,18 @@
-// @dart = 2.9
-
 import 'dart:collection';
 
-// TODO migrate to null safe dart.
-// TODO guard & non guard, terminal & non terminal.
-// TODO no as and no is.
 /// https://en.wikipedia.org/wiki/Sequitur_algorithm
 /// http://www.sequitur.info
 /// https://arxiv.org/pdf/cs/9709102.pdf
 String runSequitur({
-  final String input,
+  required final String input,
 }) {
   final context = () {
     final digrams = LinkedHashMap<Symboll, Symboll>(
-      equals: (final self, final obj) => self.value == obj.value && self.next.value == obj.next.value,
+      equals: (final self, final obj) => self.value == obj.value && self.next?.value == obj.next?.value,
       hashCode: (final self) => self.value.hashCode,
     );
     int i = 0;
-    return SequiturContext(
+    return _SequiturContext(
       setDigram: (final a, final b) => digrams[a] = b,
       getDigram: (final a) => digrams[a],
       removeDigram: digrams.remove,
@@ -25,30 +20,49 @@ String runSequitur({
       ruleFactory: () => Rule(i++),
     );
   }();
-  final rootRule = fillRule(
+  final rootRule = _fillRule(
     context: context,
     input: input,
   );
-  return ruleDebugOutput(
+  return _ruleDebugOutput(
     rule: rootRule,
   );
 }
 
-Rule fillRule({
-  final SequiturContext context,
-  final String input,
+Rule _fillRule({
+  required final _SequiturContext context,
+  required final String input,
 }) {
   final rootRule = context.ruleFactory();
   int i;
   for (i = 0; i < input.length; i++) {
-    rootRule.theGuard.previous.insertAfter(context, Terminal(input[i]));
-    rootRule.theGuard.previous.previous.check(context);
+    final prev = rootRule.theGuard.previous;
+    if (prev == null) {
+      throw Exception("Invalid State.");
+    } else {
+      _insertAfter(
+        context: context,
+        self: prev,
+        toInsert: Terminal(
+          value: input[i],
+        ),
+      );
+      final newPrev = rootRule.theGuard.previous;
+      if (newPrev == null) {
+        throw Exception("Invalid State.");
+      } else {
+        _check(
+          context: context,
+          self: newPrev.previous!,
+        );
+      }
+    }
   }
   return rootRule;
 }
 
-String ruleDebugOutput({
-  final Rule rule,
+String _ruleDebugOutput({
+  required final Rule rule,
 }) {
   final rules = <Rule>[rule];
   Rule currentRule;
@@ -62,29 +76,35 @@ String ruleDebugOutput({
     currentRule = rules.elementAt(processedRules);
     text.write(processedRules);
     text.write(" -> ");
-    for (sym = currentRule.theGuard.next; sym is! Guard; sym = sym.next) {
-      if (sym is NonTerminal) {
-        referredTo = sym.r;
-        if ((rules.length > referredTo.index) && (rules.elementAt(referredTo.index) == referredTo)) {
-          index = referredTo.index;
-        } else {
-          index = rules.length;
-          referredTo.index = index;
-          rules.add(referredTo);
-        }
-        text.write(index);
+    sym = currentRule.theGuard.next!;
+    for (;;) {
+      if (sym is Guard) {
+        break;
       } else {
-        if (sym.value == ' ') {
-          text.write('_');
-        } else {
-          if (sym.value == '\n') {
-            text.write("\\n");
+        if (sym is NonTerminal) {
+          referredTo = sym.rule;
+          if ((rules.length > referredTo.index) && (rules.elementAt(referredTo.index) == referredTo)) {
+            index = referredTo.index;
           } else {
-            text.write(sym.value);
+            index = rules.length;
+            referredTo.index = index;
+            rules.add(referredTo);
+          }
+          text.write(index);
+        } else {
+          if (sym.value == ' ') {
+            text.write('_');
+          } else {
+            if (sym.value == '\n') {
+              text.write("\\n");
+            } else {
+              text.write(sym.value);
+            }
           }
         }
+        text.write(' ');
+        sym = sym.next!;
       }
-      text.write(' ');
     }
     text.write('\n');
     processedRules++;
@@ -92,26 +112,26 @@ String ruleDebugOutput({
   return text.toString();
 }
 
-class SequiturContext {
+class _SequiturContext {
   final Rule Function() ruleFactory;
   final Symboll Function(Symboll, Symboll) setDigram;
-  final Symboll Function(Symboll) getDigram;
+  final Symboll? Function(Symboll) getDigram;
   final bool Function(Symboll) containsDigram;
   final void Function(Symboll) removeDigram;
 
-  const SequiturContext({
-    final this.setDigram,
-    final this.getDigram,
-    final this.removeDigram,
-    final this.containsDigram,
-    final this.ruleFactory,
+  const _SequiturContext({
+    required final this.setDigram,
+    required final this.getDigram,
+    required final this.removeDigram,
+    required final this.containsDigram,
+    required final this.ruleFactory,
   });
 }
 
 class Rule {
   /// Guard symbol to mark beginning
   /// and end of rule.
-  Guard theGuard;
+  late final Guard theGuard;
 
   /// Counter keeps track of how many
   /// times the Rule is used in the
@@ -130,46 +150,29 @@ class Rule {
     final this.number,
   )   : count = 0,
         index = 0 {
-    theGuard = Guard(this);
+    theGuard = Guard(
+      rule: this,
+    );
   }
 }
 
-/// Links two symbols together, removing any old
-/// digram from the hash table.
-void join(
-  final SequiturContext context,
-  final Symboll left,
-  final Symboll right,
-) {
-  if (left.next != null) {
-    left.deleteDigram(context);
-    if ((right.previous != null) &&
-        (right.next != null) &&
-        right.value == right.previous.value &&
-        right.value == right.next.value) {
-      context.setDigram(right, right);
-    }
-    if ((left.previous != null) &&
-        (left.next != null) &&
-        left.value == left.next.value &&
-        left.value == left.previous.value) {
-      context.setDigram(left.previous, left.previous);
-    }
-  }
-  left.next = right;
-  right.previous = left;
-}
+class Terminal implements Symboll {
+  @override
+  final String value;
+  @override
+  Symboll? previous;
+  @override
+  Symboll? next;
 
-class Terminal with Symboll {
-  Terminal(
-    final String theValue,
-  ) {
-    value = theValue;
-  }
+  Terminal({
+    required final this.value,
+  });
 
   @override
   Terminal clone() {
-    final sym = Terminal(value);
+    final sym = Terminal(
+      value: value,
+    );
     sym.previous = previous;
     sym.next = next;
     return sym;
@@ -177,39 +180,40 @@ class Terminal with Symboll {
 
   @override
   void cleanUp(
-    final SequiturContext digrams,
+    final _SequiturContext context,
   ) {
-    join(digrams, previous, next);
-    deleteDigram(digrams);
+    _join(
+      context: context,
+      left: previous!,
+      right: next!,
+    );
+    _deleteDigram(
+      context: context,
+      symbol: this,
+    );
   }
-
-  @override
-  R match<R>({
-    final R Function(Guard guard) guard,
-    final R Function(NonTerminal guard) nonTerminal,
-    final R Function(Terminal guard) terminal,
-  }) =>
-      terminal(this);
 }
 
-class NonTerminal with Symboll {
-  Rule r;
+class NonTerminal implements Symboll {
+  @override
+  final String value;
+  final Rule rule;
+  @override
+  Symboll? previous;
+  @override
+  Symboll? next;
 
-  NonTerminal(
-    final this.r,
-  ) {
-    r.count++;
-    value = (10000000 + r.number).toString();
-    previous = null;
-    next = null;
+  NonTerminal({
+    required final this.rule,
+  }) : value = (10000000 + rule.number).toString() {
+    rule.count++;
   }
 
-  /// Extra cloning method necessary so that
-  /// count in the corresponding Rule is
-  /// increased.
   @override
   NonTerminal clone() {
-    final sym = NonTerminal(r);
+    final sym = NonTerminal(
+      rule: rule,
+    );
     sym.previous = previous;
     sym.next = next;
     return sym;
@@ -217,193 +221,246 @@ class NonTerminal with Symboll {
 
   @override
   void cleanUp(
-    final SequiturContext context,
+    final _SequiturContext context,
   ) {
-    join(context, previous, next);
-    deleteDigram(context);
-    r.count--;
+    _join(
+      context: context,
+      left: previous!,
+      right: next!,
+    );
+    _deleteDigram(
+      context: context,
+      symbol: this,
+    );
+    rule.count--;
   }
 
   /// This Symbol is the last reference to
   /// its Rule. The contents of the Rule
   /// are substituted in its place.
   void expand(
-    final SequiturContext context,
+    final _SequiturContext context,
   ) {
-    join(context, previous, r.theGuard.next);
-    join(context, r.theGuard.previous, next);
-    context.setDigram(r.theGuard.previous, r.theGuard.previous);
-    r.theGuard.r = null;
-    r.theGuard = null;
+    _join(
+      context: context,
+      left: previous!,
+      right: rule.theGuard.next!,
+    );
+    _join(
+      context: context,
+      left: rule.theGuard.previous!,
+      right: next!,
+    );
+    context.setDigram(
+      rule.theGuard.previous!,
+      rule.theGuard.previous!,
+    );
   }
-
-  @override
-  R match<R>({
-    final R Function(Guard guard) guard,
-    final R Function(NonTerminal guard) nonTerminal,
-    final R Function(Terminal guard) terminal,
-  }) =>
-      nonTerminal(this);
 }
 
-class Guard with Symboll {
-  Rule r;
+class Guard implements Symboll {
+  @override
+  final String value;
+  final Rule rule;
+  @override
+  Symboll? previous;
+  @override
+  Symboll? next;
 
-  Guard(
-    final this.r,
-  ) {
-    value = "0";
+  Guard({
+    required final this.rule,
+  }) : value = "0" {
     previous = this;
     next = this;
   }
 
   @override
   void cleanUp(
-    final SequiturContext digrams,
+    final _SequiturContext digrams,
   ) =>
-      join(
-        digrams,
-        previous,
-        next,
+      _join(
+        context: digrams,
+        left: previous!,
+        right: next!,
       );
 
   @override
-  void deleteDigram(
-    final SequiturContext digrams,
-  ) {}
-
-  @override
-  bool check(
-    final SequiturContext digrams,
-  ) =>
-      false;
-
-  @override
   Guard clone() {
-    final sym = Guard(r);
+    final sym = Guard(
+      rule: rule,
+    );
     sym.previous = previous;
     sym.next = next;
     return sym;
   }
-
-  @override
-  R match<R>({
-    final R Function(Guard guard) guard,
-    final R Function(NonTerminal guard) nonTerminal,
-    final R Function(Terminal guard) terminal,
-  }) =>
-      guard(this);
 }
 
-mixin Symboll {
-  String value;
-  Symboll previous;
-  Symboll next;
+abstract class Symboll {
+  String get value;
 
-  /// Cleans up for Symboll deletion.
+  abstract Symboll? previous;
+
+  abstract Symboll? next;
+
   void cleanUp(
-    SequiturContext context,
+    _SequiturContext context,
   );
 
   Symboll clone();
+}
 
-  /// Inserts a Symboll after this one.
-  void insertAfter(
-    final SequiturContext context,
-    final Symboll toInsert,
-  ) {
-    join(context, toInsert, next);
-    join(context, this, toInsert);
-  }
-
-  /// Removes the digram from the hash table.
-  /// Overwritten in sub class Guard.
-  void deleteDigram(
-    final SequiturContext context,
-  ) {
-    if (next is! Guard) {
-      if (context.getDigram(this) == this) {
-        context.removeDigram(this);
-      }
+/// Links two symbols together, removing any old
+/// digram from the hash table.
+void _join({
+  required final _SequiturContext context,
+  required final Symboll left,
+  required final Symboll right,
+}) {
+  if (left.next != null) {
+    _deleteDigram(
+      context: context,
+      symbol: left,
+    );
+    if ((right.previous != null) &&
+        (right.next != null) &&
+        right.value == right.previous!.value &&
+        right.value == right.next!.value) {
+      context.setDigram(right, right);
+    }
+    if ((left.previous != null) &&
+        (left.next != null) &&
+        left.value == left.next!.value &&
+        left.value == left.previous!.value) {
+      context.setDigram(left.previous!, left.previous!);
     }
   }
+  left.next = right;
+  right.previous = left;
+}
 
-  /// Checks a new digram. If it appears
-  /// elsewhere, deals with it by calling
-  /// match(), otherwise inserts it into the
-  /// hash table.
-  /// Overwritten in subclass Guard.
-  bool check(
-    final SequiturContext context,
-  ) {
-    if (next is Guard) {
+bool _check({
+  required final _SequiturContext context,
+  required final Symboll self,
+}) {
+  if (self is Guard) {
+    return false;
+  } else {
+    if (self.next is Guard) {
       return false;
     } else {
-      if (!context.containsDigram(this)) {
-        context.setDigram(this, this);
+      if (!context.containsDigram(self)) {
+        context.setDigram(self, self);
         return false;
       } else {
-        final found = context.getDigram(this);
-        if (found.next != this) {
-          sequiturMatch(
-            context,
-            this,
-            found,
+        final found = context.getDigram(self);
+        if (found!.next != self) {
+          _match(
+            context: context,
+            newD: self,
+            matching: found,
           );
         }
         return true;
       }
     }
   }
+}
 
-  /// Replace a digram with a non-Terminal.
-  void substitute(
-    final SequiturContext context,
-    final Rule r,
-  ) {
-    cleanUp(context);
-    next.cleanUp(context);
-    previous.insertAfter(context, NonTerminal(r));
-    if (!previous.check(context)) {
-      previous.next.check(context);
+/// Replace a digram with a non-Terminal.
+void _substitute({
+  required final _SequiturContext context,
+  required final Rule r,
+  required final Symboll self,
+}) {
+  self.cleanUp(context);
+  self.next!.cleanUp(context);
+  _insertAfter(
+    context: context,
+    self: self.previous!,
+    toInsert: NonTerminal(
+      rule: r,
+    ),
+  );
+  final _checked = _check(context: context, self: self.previous!);
+  if (!_checked) {
+    _check(
+      context: context,
+      self: self.previous!.next!,
+    );
+  }
+}
+
+/// Insert toInsert after self.
+void _insertAfter({
+  required final _SequiturContext context,
+  required final Symboll self,
+  required final Symboll toInsert,
+}) {
+  _join(
+    context: context,
+    left: toInsert,
+    right: self.next!,
+  );
+  _join(
+    context: context,
+    left: self,
+    right: toInsert,
+  );
+}
+
+void _match({
+  required final _SequiturContext context,
+  required final Symboll newD,
+  required final Symboll matching,
+}) {
+  Rule r;
+  Symboll first;
+  Symboll second;
+  final prev = matching.previous;
+  if (prev is Guard && matching.next!.next is Guard) {
+    r = prev.rule;
+    _substitute(
+      context: context,
+      r: r,
+      self: newD,
+    );
+  } else {
+    r = context.ruleFactory();
+    first = newD.clone();
+    second = newD.next!.clone();
+    r.theGuard.next = first;
+    first.previous = r.theGuard;
+    first.next = second;
+    second.previous = first;
+    second.next = r.theGuard;
+    r.theGuard.previous = second;
+    _substitute(
+      context: context,
+      r: r,
+      self: matching,
+    );
+    _substitute(
+      context: context,
+      r: r,
+      self: newD,
+    );
+    context.setDigram(first, first);
+  }
+  final next = r.theGuard.next;
+  // Check for an underused Rule.
+  if (next is NonTerminal && next.rule.count == 1) {
+    next.expand(context);
+  }
+}
+
+/// Remove the given symbol from the digram store.
+void _deleteDigram({
+  required final _SequiturContext context,
+  required final Symboll symbol,
+}) {
+  if (symbol.next is! Guard) {
+    if (context.getDigram(symbol) == symbol) {
+      context.removeDigram(symbol);
     }
   }
-
-  /// Deal with a matching digram.
-  void sequiturMatch(
-    final SequiturContext context,
-    final Symboll newD,
-    final Symboll matching,
-  ) {
-    Rule r;
-    Symboll first;
-    Symboll second;
-    if (matching.previous is Guard && matching.next.next is Guard) {
-      r = (matching.previous as Guard).r;
-      newD.substitute(context, r);
-    } else {
-      r = context.ruleFactory();
-      first = newD.clone();
-      second = newD.next.clone();
-      r.theGuard.next = first;
-      first.previous = r.theGuard;
-      first.next = second;
-      second.previous = first;
-      second.next = r.theGuard;
-      r.theGuard.previous = second;
-      matching.substitute(context, r);
-      newD.substitute(context, r);
-      context.setDigram(first, first);
-    }
-    // Check for an underused Rule.
-    if (r.theGuard.next is NonTerminal && ((r.theGuard.next as NonTerminal).r.count == 1)) {
-      (r.theGuard.next as NonTerminal).expand(context);
-    }
-  }
-
-  R match<R>({
-    final R Function(Guard guard) guard,
-    final R Function(NonTerminal guard) nonTerminal,
-    final R Function(Terminal guard) terminal,
-  });
 }
